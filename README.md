@@ -1,6 +1,6 @@
-# Cortex 👁️ Web Based OSINT Dashboard
+# Network Intel  👁️ Web Based OSINT Dashboard
 
-Cortex is a powerful, single-page web application designed for security analysts, penetration testers, and IT professionals. 
+This dashboard is a powerful, single-page web application designed for security analysts, penetration testers, and IT professionals. 
 It aggregates data from multiple security APIs into a centralized, dark-mode dashboard for rapid reconnaissance and threat intelligence gathering.
 
 ## ✨ Features
