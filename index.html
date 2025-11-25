@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Intel Dashboard</title>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load Vis.js for network visualization -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    
+    <!-- Load Lucide icons (Corrected from lucide-react to lucide) -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+    <style>
+        /* Custom styles for Vis.js dark mode */
+        #network-graph {
+            background-color: #1f2937; /* bg-gray-800 */
+            border: 1px solid #4b5563; /* border-gray-600 */
+            border-radius: 0.5rem; /* rounded-lg */
+        }
+
+        /* Custom scrollbar for dark mode */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* bg-gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; /* bg-gray-600 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* bg-gray-500 */
+        }
+
+        /* Style for loading spinners */
+        .loader {
+            border: 4px solid #4b5563; /* border-gray-600 */
+            border-top: 4px solid #3b82f6; /* border-blue-500 */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Ensure lucide icons are sized correctly */
+        .lucide {
+            width: 16px;
+            height: 16px;
+            stroke-width: 2px;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans antialiased" style="font-family: 'Inter', sans-serif;">
+
+    <!-- Main Container -->
+    <div class="container mx-auto max-w-7xl p-4 md:p-6 lg:p-8">
+
+        <!-- Header -->
+        <header class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 pb-4 border-b border-gray-700">
+            <div>
+                <h1 class="text-3xl font-bold text-white">Network Intel Dashboard</h1>
+                <p class="text-gray-400">An OSINT and reconnaissance tool for security analysis.</p>
+            </div>
+            <!-- Status Indicator -->
+            <div class="flex items-center gap-2 mt-2 sm:mt-0">
+                <div id="api-status-dot" class="w-3 h-3 rounded-full bg-red-500" title="API Keys Missing"></div>
+                <span id="api-status-text" class="text-sm text-gray-400">API Keys Missing</span>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="mb-6">
+            <ul class="flex flex-wrap border-b border-gray-700">
+                <li class="-mb-px mr-1">
+                    <button id="tab-scan" class="tab-button bg-gray-800 border-l border-t border-r border-gray-700 text-white py-2 px-4 rounded-t-lg font-medium" data-tab="scan">
+                        <span class="flex items-center gap-2"><i data-lucide="search"></i>Scan Target</span>
+                    </button>
+                </li>
+                <li class="mr-1">
+                    <button id="tab-graph" class="tab-button text-gray-400 hover:text-white py-2 px-4 rounded-t-lg font-medium" data-tab="graph">
+                        <span class="flex items-center gap-2"><i data-lucide="share-2"></i>Network Graph</span>
+                    </button>
+                </li>
+                <li class="mr-1">
+                    <button id="tab-settings" class="tab-button text-gray-400 hover:text-white py-2 px-4 rounded-t-lg font-medium" data-tab="settings">
+                        <span class="flex items-center gap-2"><i data-lucide="settings"></i>API Settings</span>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Tab Content -->
+        <main>
+            <!-- Scan Tab -->
+            <div id="content-scan" class="tab-content">
+                <!-- Search Bar -->
+                <div class="mb-6 p-4 bg-gray-800 rounded-lg shadow-lg">
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <input type="text" id="target-input" class="flex-grow bg-gray-700 text-white border border-gray-600 rounded-md px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter Domain or IP Address...">
+                        <button id="scan-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-200 flex items-center justify-center gap-2">
+                            <i data-lucide="scan-line"></i>
+                            <span>Start Scan</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Global Message Box -->
+                <div id="global-message" class="hidden p-4 mb-4 rounded-md"></div>
+
+                <!-- Results Grid -->
+                <div id="results-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Card Template (will be populated by JS) -->
+                    <div id="card-general" class="result-card bg-gray-800 rounded-lg shadow-lg overflow-hidden md:col-span-2">
+                        <header class="flex justify-between items-center p-4 border-b border-gray-700">
+                            <h2 class="text-xl font-semibold flex items-center gap-2"><i data-lucide="info"></i>General Info</h2>
+                            <div class="loader-container"></div>
+                        </header>
+                        <div class="p-4 space-y-2 min-h-[150px] max-h-[400px] overflow-y-auto" id="content-general">
+                            <p class="text-gray-500">Scan a target to see IP and WHOIS info.</p>
+                        </div>
+                    </div>
+
+                    <div id="card-dns" class="result-card bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                        <header class="flex justify-between items-center p-4 border-b border-gray-700">
+                            <h2 class="text-xl font-semibold flex items-center gap-2"><i data-lucide="server"></i>DNS Records</h2>
+                            <div class="loader-container"></div>
+                        </header>
+                        <div class="p-4 space-y-2 min-h-[150px] max-h-[400px] overflow-y-auto" id="content-dns">
+                            <p class="text-gray-500">Scan a domain to see DNS records.</p>
+                        </div>
+                    </div>
+
+                    <div id="card-virustotal" class="result-card bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                        <header class="flex justify-between items-center p-4 border-b border-gray-700">
+                            <h2 class="text-xl font-semibold flex items-center gap-2"><i data-lucide="shield-check"></i>VirusTotal</h2>
+                            <div class="loader-container"></div>
+                        </header>
+                        <div class="p-4 space-y-2 min-h-[150px] max-h-[400px] overflow-y-auto" id="content-virustotal">
+                            <p class="text-gray-500">Add API key in Settings to use.</p>
+                        </div>
+                    </div>
+
+                    <div id="card-shodan" class="result-card bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                        <header class="flex justify-between items-center p-4 border-b border-gray-700">
+                            <h2 class="text-xl font-semibold flex items-center gap-2"><i data-lucide="database"></i>Shodan</h2>
+                            <div class="loader-container"></div>
+                        </header>
+                        <div class="p-4 space-y-2 min-h-[150px] max-h-[400px] overflow-y-auto" id="content-shodan">
+                            <p class="text-gray-500">Add API key in Settings to use.</p>
+                        </div>
+                    </div>
+
+                    <div id="card-abuseipdb" class="result-card bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                        <header class="flex justify-between items-center p-4 border-b border-gray-700">
+                            <h2 class="text-xl font-semibold flex items-center gap-2"><i data-lucide="flag"></i>AbuseIPDB</h2>
+                            <div class="loader-container"></div>
+                        </D>
+                        <div class="p-4 space-y-2 min-h-[150px] max-h-[400px] overflow-y-auto" id="content-abuseipdb">
+                            <p class="text-gray-500">Add API key in Settings to use.</p>
+                        </div>
+                    </div>
+
+                    <div id="card-subdomains" class="result-card bg-gray-800 rounded-lg shadow-lg overflow-hidden md:col-span-2 lg:col-span-3">
+                        <header class="flex justify-between items-center p-4 border-b border-gray-700">
+                            <h2 class="text-xl font-semibold flex items-center gap-2"><i data-lucide="layout-list"></i>Subdomains</h2>
+                            <div class="loader-container"></div>
+                        </header>
+                        <div class="p-4 space-y-2 min-h-[150px] max-h-[400px] overflow-y-auto" id="content-subdomains">
+                            <p class="text-gray-500">Requires VirusTotal API key.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Graph Tab -->
+            <div id="content-graph" class="tab-content hidden">
+                <div class="bg-gray-800 rounded-lg shadow-lg p-4">
+                    <button id="generate-graph-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-200 mb-4 flex items-center gap-2">
+                        <i data-lucide="refresh-cw"></i>
+                        <span>Generate/Update Graph</span>
+                    </button>
+                    <div id="network-graph" class="w-full h-[70vh] rounded-lg"></div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="content-settings" class="tab-content hidden">
+                <div class="max-w-xl mx-auto bg-gray-800 rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-semibold mb-6">API Key Management</h2>
+                    <p class="text-gray-400 mb-6">
+                        API keys are stored in your browser's <code>localStorage</code>. They are never sent to any server other than the respective API providers (VirusTotal, Shodan, etc.).
+                    </p>
+                    <div class="space-y-6">
+                        <div>
+                            <label for="vt-key" class="block text-sm font-medium text-gray-300 mb-2">VirusTotal API Key</label>
+                            <input type="password" id="vt-key" class="w-full bg-gray-700 text-white border border-gray-600 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your VirusTotal API key">
+                        </div>
+                        <div>
+                            <label for="shodan-key" class="block text-sm font-medium text-gray-300 mb-2">Shodan API Key</label>
+                            <input type="password" id="shodan-key" class="w-full bg-gray-700 text-white border border-gray-600 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your Shodan API key">
+                        </div>
+                        <div>
+                            <label for="abuseipdb-key" class="block text-sm font-medium text-gray-300 mb-2">AbuseIPDB API Key</label>
+                            <input type="password" id="abuseipdb-key" class="w-full bg-gray-700 text-white border border-gray-600 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your AbuseIPDB API key">
+                        </div>
+                    </div>
+                    <div class="mt-8 flex gap-4">
+                        <button id="save-keys-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-md transition duration-200 flex items-center gap-2">
+                            <i data-lucide="save"></i>
+                            <span>Save Keys</span>
+                        </button>
+                        <button id="clear-keys-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition duration-200 flex items-center gap-2">
+                            <i data-lucide="trash-2"></i>
+                            <span>Clear Keys</span>
+                        </button>
+                    </div>
+                    <div id="settings-message" class="hidden mt-4 p-3 rounded-md"></div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Main Application Logic -->
+    <script type="module">
+        // Initialize Lucide icons
+        // lucide.createIcons(); // Moved to DOMContentLoaded
+
+        /**
+         * Main Application Module
+         */
+        const App = {
+            // Application state
+            state: {
+                apiKeys: {
+                    virusTotal: null,
+                    shodan: null,
+                    abuseIPDB: null,
+                },
+                scanResults: {
+                    target: null,
+                    ipInfo: null,
+                    dns: null,
+                    whois: null,
+                    virusTotal: null,
+                    shodan: null,
+                    abuseIPDB: null,
+                    subdomains: null,
+                },
+                network: null, // Vis.js network instance
+            },
+
+            // --- Constants ---
+            // Note: In a real app, these API endpoints might be proxied through a backend
+            // to protect API keys and handle CORS.
+            api: {
+                // Free, no key
+                ipInfo: (ip) => `https://ip-api.com/json/${ip}`,
+                dns: (domain, type) => `https://dns.google/resolve?name=${domain}&type=${type}`,
+                // RDAP is the modern successor to WHOIS
+                whoisIP: (ip) => `https://rdap.arin.net/registry/ip/${ip}`,
+                whoisDomain: (domain) => `https://rdap.org/domain/${domain}`,
+                
+                // Key-protected APIs
+                virusTotalDomain: (domain) => `https://www.virustotal.com/api/v3/domains/${domain}`,
+                virusTotalIP: (ip) => `https://www.virustotal.com/api/v3/ip_addresses/${ip}`,
+                virusTotalSubdomains: (domain) => `https://www.virustotal.com/api/v3/domains/${domain}/subdomains?limit=40`,
+                shodan: (ip) => `https://api.shodan.io/shodan/host/${ip}`,
+                abuseIPDB: (ip) => `https://api.abuseipdb.com/api/v2/check?ipAddress=${ip}&maxAgeInDays=90`,
+            },
+
+            // --- Initialization ---
+            init() {
+                // Load keys from localStorage
+                this.loadApiKeys();
+                this.updateApiStatus();
+
+                // Register event listeners
+                this.addEventListeners();
+            },
+
+            addEventListeners() {
+                // Tab navigation
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    button.addEventListener('click', () => this.showTab(button.dataset.tab));
+                });
+
+                // Settings management
+                document.getElementById('save-keys-button').addEventListener('click', () => this.saveApiKeys());
+                document.getElementById('clear-keys-button').addEventListener('click', () => this.clearApiKeys());
+
+                // Scan functionality
+                document.getElementById('scan-button').addEventListener('click', () => this.startScan());
+                document.getElementById('target-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.startScan();
+                });
+
+                // Graph functionality
+                document.getElementById('generate-graph-button').addEventListener('click', () => this.generateNetworkGraph());
+            },
+
+            // --- Tab & UI Management ---
+            showTab(tabName) {
+                // Hide all content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+                // Deactivate all buttons
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    button.classList.remove('bg-gray-800', 'border-l', 'border-t', 'border-r', 'border-gray-700', 'text-white');
+                    button.classList.add('text-gray-400', 'hover:text-white');
+                });
+                
+                // Show active tab
+                document.getElementById(`content-${tabName}`).classList.remove('hidden');
+                // Activate active button
+                const activeButton = document.getElementById(`tab-${tabName}`);
+                activeButton.classList.add('bg-gray-800', 'border-l', 'border-t', 'border-r', 'border-gray-700', 'text-white');
+                activeButton.classList.remove('text-gray-400', 'hover:text-white');
+            },
+
+            showGlobalMessage(message, type = 'info') {
+                const el = document.getElementById('global-message');
+                el.textContent = message;
+                el.className = 'p-4 mb-4 rounded-md'; // Reset classes
+                if (type === 'error') {
+                    el.classList.add('bg-red-900', 'text-red-100');
+                } else if (type === 'success') {
+                    el.classList.add('bg-green-900', 'text-green-100');
+                } else {
+                    el.classList.add('bg-blue-900', 'text-blue-100');
+                }
+                el.classList.remove('hidden');
+                
+                // Hide after 5 seconds
+                setTimeout(() => el.classList.add('hidden'), 5000);
+            },
+
+            showSettingsMessage(message, type = 'success') {
+                const el = document.getElementById('settings-message');
+                el.textContent = message;
+                el.className = 'mt-4 p-3 rounded-md'; // Reset
+                if (type === 'error') {
+                    el.classList.add('bg-red-900', 'text-red-100');
+                } else {
+                    el.classList.add('bg-green-900', 'text-green-100');
+                }
+                el.classList.remove('hidden');
+                
+                setTimeout(() => el.classList.add('hidden'), 3000);
+            },
+
+            showCardLoader(cardId) {
+                const container = document.querySelector(`#card-${cardId} .loader-container`);
+                if(container) container.innerHTML = '<div class="loader"></div>';
+            },
+
+            hideCardLoader(cardId) {
+                const container = document.querySelector(`#card-${cardId} .loader-container`);
+                if(container) container.innerHTML = '';
+            },
+
+            renderCardContent(cardId, html) {
+                document.getElementById(`content-${cardId}`).innerHTML = html;
+                this.hideCardLoader(cardId);
+            },
+
+            renderCardError(cardId, error) {
+                const html = `<p class="text-red-400"><i class="lucide mr-2" data-lucide="alert-triangle"></i>Error: ${error}</p>`;
+                document.getElementById(`content-${cardId}`).innerHTML = html;
+                this.hideCardLoader(cardId);
+                // Safety check for lucide
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons(); // Re-render icons
+                }
+            },
+
+            resetScanUI() {
+                this.state.scanResults = {}; // Clear previous results
+                document.querySelectorAll('.result-card [id^="content-"]').forEach(el => {
+                    const defaultText = {
+                        'content-general': 'Scan a target to see IP and WHOIS info.',
+                        'content-dns': 'Scan a domain to see DNS records.',
+                        'content-virustotal': this.state.apiKeys.virusTotal ? 'Pending scan...' : 'Add API key in Settings to use.',
+                        'content-shodan': this.state.apiKeys.shodan ? 'Pending scan...' : 'Add API key in Settings to use.',
+                        'content-abuseipdb': this.state.apiKeys.abuseIPDB ? 'Pending scan...' : 'Add API key in Settings to use.',
+                        'content-subdomains': this.state.apiKeys.virusTotal ? 'Pending scan...' : 'Requires VirusTotal API key.',
+                    }[el.id];
+                    el.innerHTML = `<p class="text-gray-500">${defaultText}</p>`;
+                });
+            },
+
+            // --- API Key Management ---
+            loadApiKeys() {
+                this.state.apiKeys.virusTotal = localStorage.getItem('vtKey');
+                this.state.apiKeys.shodan = localStorage.getItem('shodanKey');
+                this.state.apiKeys.abuseIPDB = localStorage.getItem('abuseIpdbKey');
+
+                // Populate settings fields (if on settings page)
+                const vtInput = document.getElementById('vt-key');
+                if(vtInput) {
+                    document.getElementById('vt-key').value = this.state.apiKeys.virusTotal || '';
+                    document.getElementById('shodan-key').value = this.state.apiKeys.shodan || '';
+                    document.getElementById('abuseipdb-key').value = this.state.apiKeys.abuseIPDB || '';
+                }
+            },
+
+            saveApiKeys() {
+                const vtKey = document.getElementById('vt-key').value.trim();
+                const shodanKey = document.getElementById('shodan-key').value.trim();
+                const abuseIpdbKey = document.getElementById('abuseipdb-key').value.trim();
+
+                if (vtKey) localStorage.setItem('vtKey', vtKey);
+                if (shodanKey) localStorage.setItem('shodanKey', shodanKey);
+                if (abuseIpdbKey) localStorage.setItem('abuseIpdbKey', abuseIpdbKey);
+
+                this.loadApiKeys();
+                this.updateApiStatus();
+                this.showSettingsMessage('API Keys saved successfully!', 'success');
+            },
+
+            clearApiKeys() {
+                localStorage.removeItem('vtKey');
+                localStorage.removeItem('shodanKey');
+                localStorage.removeItem('abuseIpdbKey');
+                this.loadApiKeys();
+                this.updateApiStatus();
+                this.showSettingsMessage('API Keys cleared.', 'info');
+            },
+
+            updateApiStatus() {
+                const dot = document.getElementById('api-status-dot');
+                const text = document.getElementById('api-status-text');
+                if (this.state.apiKeys.virusTotal && this.state.apiKeys.shodan && this.state.apiKeys.abuseIPDB) {
+                    dot.className = 'w-3 h-3 rounded-full bg-green-500';
+                    text.textContent = 'API Keys Loaded';
+                    text.title = 'All API keys are configured.';
+                } else if (this.state.apiKeys.virusTotal || this.state.apiKeys.shodan || this.state.apiKeys.abuseIPDB) {
+                    dot.className = 'w-3 h-3 rounded-full bg-yellow-500';
+                    text.textContent = 'Partial API Keys';
+                    text.title = 'Some API keys are missing.';
+                } else {
+                    dot.className = 'w-3 h-3 rounded-full bg-red-500';
+                    text.textContent = 'API Keys Missing';
+                    text.title = 'Go to Settings to add API keys.';
+                }
+            },
+
+            // --- Core Scan Logic ---
+            async startScan() {
+                const target = document.getElementById('target-input').value.trim();
+                if (!target) {
+                    this.showGlobalMessage('Please enter a domain or IP address.', 'error');
+                    return;
+                }
+
+                this.state.scanResults.target = target;
+                document.getElementById('scan-button').disabled = true;
+                document.getElementById('scan-button').innerHTML = '<div class="loader-small" style="width:20px; height:20px; border-width: 2px;"></div><span>Scanning...</span>';
+
+                this.resetScanUI();
+
+                // Determine target type
+                const isIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(target);
+                const isDomain = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(target);
+                let ipForScans = isIp ? target : null;
+
+                // --- Execute all scans in parallel ---
+                const scanPromises = [];
+
+                if (isIp) {
+                    // IP-only scans
+                    scanPromises.push(this.fetchIpInfo(target));
+                    scanPromises.push(this.fetchWhois(target, 'ip'));
+                } else if (isDomain) {
+                    // Domain-only scans
+                    scanPromises.push(this.fetchDns(target));
+                    scanPromises.push(this.fetchWhois(target, 'domain'));
+                    scanPromises.push(this.fetchSubdomains(target));
+                } else {
+                    this.showGlobalMessage('Invalid target. Must be a valid domain or IP.', 'error');
+                    return;
+                }
+
+                // If it's a domain, we need to resolve its IP for IP-based scans
+                if (isDomain) {
+                    try {
+                        this.showCardLoader('general');
+                        const ip = await this.resolveDomainToIp(target);
+                        ipForScans = ip;
+                        this.state.scanResults.resolvedIp = ip;
+                        // Now that we have an IP, fetch IP-based info
+                        scanPromises.push(this.fetchIpInfo(ipForScans));
+                    } catch (error) {
+                        this.renderCardError('general', `Could not resolve domain: ${error.message}`);
+                    }
+                }
+
+                // Add key-based scans if we have an IP
+                if (ipForScans) {
+                    scanPromises.push(this.fetchShodan(ipForScans));
+                    scanPromises.push(this.fetchAbuseIPDB(ipForScans));
+                }
+
+                // Add scans that work for both IP and Domain
+                scanPromises.push(this.fetchVirusTotal(target, isIp ? 'ip' : 'domain'));
+
+                // Wait for all scans to complete
+                await Promise.allSettled(scanPromises);
+
+                document.getElementById('scan-button').disabled = false;
+                document.getElementById('scan-button').innerHTML = '<i data-lucide="scan-line"></i><span>Start Scan</span>';
+                // Safety check for lucide
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+                this.showGlobalMessage('Scan complete.', 'success');
+            },
+
+            async resolveDomainToIp(domain) {
+                // Use Google DNS to get the A record
+                const response = await this.fetchApi(this.api.dns(domain, 'A'));
+                if (response.Answer && response.Answer.length > 0) {
+                    // Find the first A record
+                    const aRecord = response.Answer.find(ans => ans.type === 1);
+                    if (aRecord) return aRecord.data;
+                }
+                throw new Error('No A record found');
+            },
+
+            // --- Fetcher Functions ---
+
+            // Generic fetch wrapper
+            async fetchApi(url, options = {}) {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
+                // Handle 204 No Content
+                if (response.status === 204) return null;
+                return await response.json();
+            },
+
+            async fetchIpInfo(ip) {
+                this.showCardLoader('general');
+                try {
+                    const data = await this.fetchApi(this.api.ipInfo(ip));
+                    this.state.scanResults.ipInfo = data;
+                    
+                    let html = `
+                        <div class="font-mono text-sm">
+                            <p><strong class="text-gray-400 w-24 inline-block">IP:</strong> ${data.query}</p>
+                            <p><strong class="text-gray-400 w-24 inline-block">Country:</strong> ${data.country} (${data.countryCode})</p>
+                            <p><strong class="text-gray-400 w-24 inline-block">Region:</strong> ${data.regionName} (${data.region})</p>
+                            <p><strong class="text-gray-400 w-24 inline-block">City:</strong> ${data.city}</p>
+                            <p><strong class="text-gray-400 w-24 inline-block">Zip:</strong> ${data.zip}</p>
+                            <p><strong class="text-gray-400 w-24 inline-block">ISP:</strong> ${data.isp}</p>
+                            <p><strong class="text-gray-400 w-24 inline-block">Org:</strong> ${data.org}</p>
+                            <p><strong class="text-gray-400 w-24 inline-block">AS:</strong> ${data.as}</p>
+                        </div>`;
+                    
+                    // If we also have WHOIS data, append it
+                    if (this.state.scanResults.whois) {
+                        html += this.renderWhois(this.state.scanResults.whois, 'html');
+                    }
+                    this.renderCardContent('general', html);
+
+                } catch (error) {
+                    this.renderCardError('general', `ip-api.com: ${error.message}`);
+                }
+            },
+            
+            async fetchWhois(target, type) {
+                // This will be displayed inside the 'general' card, so no loader
+                try {
+                    let whoisTarget = target;
+                    // FIX: RDAP/WHOIS servers often don't have records for subdomains like 'www'.
+                    // We'll try to find the root domain. This is a simple fix for 'www.'
+                    // A proper fix requires a full Public Suffix List, which is complex.
+                    if (type === 'domain') {
+                        whoisTarget = target.replace(/^www\./, '');
+                    }
+                    
+                    const url = type === 'ip' ? this.api.whoisIP(whoisTarget) : this.api.whoisDomain(whoisTarget);
+                    const data = await this.fetchApi(url);
+                    this.state.scanResults.whois = data;
+                    
+                    // Re-render the general card to include WHOIS data
+                    if (this.state.scanResults.ipInfo) {
+                        this.fetchIpInfo(this.state.scanResults.ipInfo.query); // Re-call to re-render
+                    } else {
+                         this.renderCardContent('general', this.renderWhois(data, 'html'));
+                    }
+                } catch (error) {
+                    // Don't overwrite IP info if it's already there
+                    if (!this.state.scanResults.ipInfo) {
+                        this.renderCardError('general', `RDAP/WHOIS: ${error.message}`);
+                    }
+                }
+            },
+            
+            async fetchDns(domain) {
+                this.showCardLoader('dns');
+                const recordTypes = ['A', 'AAAA', 'MX', 'TXT', 'NS', 'CNAME'];
+                let allResults = {};
+                
+                try {
+                    const promises = recordTypes.map(type => 
+                        this.fetchApi(this.api.dns(domain, type))
+                            .then(data => ({ type, data }))
+                            .catch(e => null) // Ignore errors for individual record types
+                    );
+                    
+                    const results = await Promise.all(promises);
+                    let html = '<div class="font-mono text-sm space-y-3">';
+                    
+                    results.forEach(result => {
+                        if (result && result.data.Answer) {
+                            allResults[result.type] = result.data.Answer;
+                            html += `<div><strong class="text-blue-400">[${result.type}]</strong>`;
+                            html += '<ul class="list-disc list-inside ml-4">';
+                            result.data.Answer.forEach(ans => {
+                                html += `<li class="truncate">${ans.data.replace(/"/g, '&quot;')}</li>`;
+                            });
+                            html += '</ul></div>';
+                        }
+                    });
+                    
+                    html += '</div>';
+                    this.state.scanResults.dns = allResults;
+                    this.renderCardContent('dns', html);
+
+                } catch (error) {
+                    this.renderCardError('dns', error.message);
+                }
+            },
+
+            async fetchVirusTotal(target, type) {
+                const { virusTotal: key } = this.state.apiKeys;
+                if (!key) return this.renderCardError('virustotal', 'API Key is not set.');
+                
+                this.showCardLoader('virustotal');
+                const url = type === 'ip' ? this.api.virusTotalIP(target) : this.api.virusTotalDomain(target);
+                
+                try {
+                    const data = await this.fetchApi(url, {
+                        headers: { 'x-apikey': key }
+                    });
+                    
+                    this.state.scanResults.virusTotal = data.data.attributes;
+                    const attrs = data.data.attributes;
+                    const stats = attrs.last_analysis_stats;
+                    const score = `${stats.malicious + stats.suspicious}/${Object.values(stats).reduce((a, b) => a + b, 0)}`;
+
+                    const html = `
+                        <div class="font-mono text-sm space-y-2">
+                            <p><strong class="text-gray-400 w-32 inline-block">Reputation:</strong> ${attrs.reputation}</p>
+                            <p><strong class="text-gray-400 w-32 inline-block">Analysis Score:</strong> 
+                                <span class="${(stats.malicious + stats.suspicious) > 0 ? 'text-red-400' : 'text-green-400'} font-bold">${score}</span>
+                                (Malicious/Total)
+                            </p>
+                            <p><strong class="text-gray-400 w-32 inline-block">Malicious:</strong> ${stats.malicious}</p>
+                            <p><strong class="text-gray-400 w-32 inline-block">Suspicious:</strong> ${stats.suspicious}</p>
+                            <p><strong class="text-gray-400 w-32 inline-block">Harmless:</strong> ${stats.harmless}</p>
+                            <p><strong class="text-gray-400 w-32 inline-block">Undetected:</strong> ${stats.undetected}</p>
+                            <a href="https://www.virustotal.com/gui/${type}/${target}/detection" target="_blank" class="text-blue-400 hover:underline mt-2 inline-block">View full report &rarr;</a>
+                        </div>`;
+                    this.renderCardContent('virustotal', html);
+
+                } catch (error) {
+                    this.renderCardError('virustotal', error.message);
+                }
+            },
+
+            async fetchSubdomains(domain) {
+                const { virusTotal: key } = this.state.apiKeys;
+                if (!key) return this.renderCardError('subdomains', 'VirusTotal API Key is required.');
+                
+                this.showCardLoader('subdomains');
+                try {
+                    const data = await this.fetchApi(this.api.virusTotalSubdomains(domain), {
+                        headers: { 'x-apikey': key }
+                    });
+                    
+                    this.state.scanResults.subdomains = data.data.map(item => item.id);
+                    let html = '<ul class="font-mono text-sm list-disc list-inside space-y-1">';
+                    if(data.data.length === 0) {
+                        html = '<p class="text-gray-500">No subdomains found.</p>';
+                    } else {
+                        data.data.forEach(item => {
+                            html += `<li class="truncate">${item.id}</li>`;
+                        });
+                    }
+                    html += '</ul>';
+                    this.renderCardContent('subdomains', html);
+
+                } catch (error) {
+                    this.renderCardError('subdomains', error.message);
+                }
+            },
+
+            async fetchShodan(ip) {
+                const { shodan: key } = this.state.apiKeys;
+                if (!key) return this.renderCardError('shodan', 'API Key is not set.');
+                
+                this.showCardLoader('shodan');
+                try {
+                    // Shodan API requires a key in the URL
+                    const url = `${this.api.shodan(ip)}?key=${key}`;
+                    const data = await this.fetchApi(url);
+                    
+                    this.state.scanResults.shodan = data;
+                    let html = `<div class="font-mono text-sm space-y-2">
+                        <p><strong class="text-gray-400 w-24 inline-block">Organization:</strong> ${data.org || 'N/A'}</p>
+                        <p><strong class="text-gray-400 w-24 inline-block">Hostname:</strong> ${data.hostnames.join(', ') || 'N/A'}</p>
+                        <p><strong class="text-gray-400 w-24 inline-block">OS:</strong> ${data.os || 'N/A'}</p>
+                        <p><strong class="text-gray-400 w-24 inline-block">Open Ports:</strong></p>
+                        <ul class="list-disc list-inside ml-4">
+                            ${data.ports.map(port => `<li>${port}</li>`).join('')}
+                        </ul>
+                        <a href="https://www.shodan.io/host/${ip}" target="_blank" class="text-blue-400 hover:underline mt-2 inline-block">View full report &rarr;</a>
+                    </div>`;
+                    this.renderCardContent('shodan', html);
+
+                } catch (error) {
+                    this.renderCardError('shodan', error.message);
+                }
+            },
+            
+            async fetchAbuseIPDB(ip) {
+                const { abuseIPDB: key } = this.state.apiKeys;
+                if (!key) return this.renderCardError('abuseipdb', 'API Key is not set.');
+                
+                this.showCardLoader('abuseipdb');
+                try {
+                    const data = await this.fetchApi(this.api.abuseIPDB(ip), {
+                        headers: { 'Key': key, 'Accept': 'application/json' }
+                    });
+                    
+                    this.state.scanResults.abuseIPDB = data.data;
+                    const d = data.data;
+                    const confidence = d.abuseConfidenceScore;
+                    let confidenceColor = 'text-green-400';
+                    if (confidence > 30) confidenceColor = 'text-yellow-400';
+                    if (confidence > 70) confidenceColor = 'text-red-400';
+
+                    const html = `
+                        <div class="font-mono text-sm space-y-2">
+                            <p><strong class="text-gray-400 w-36 inline-block">Abuse Confidence:</strong> 
+                                <strong class="${confidenceColor}">${confidence}%</strong>
+                            </p>
+                            <p><strong class="text-gray-400 w-36 inline-block">Total Reports:</strong> ${d.totalReports}</p>
+                            <p><strong class="text-gray-400 w-36 inline-block">Is Whitelisted:</strong> ${d.isWhitelisted ? 'Yes' : 'No'}</p>
+                            <p><strong class="text-gray-400 w-36 inline-block">Usage Type:</strong> ${d.usageType}</p>
+                            <p><strong class="text-gray-400 w-36 inline-block">Domain:</strong> ${d.domain}</p>
+                            <p><strong class="text-gray-400 w-36 inline-block">Country:</strong> ${d.countryName}</p>
+                            <a href="https://www.abuseipdb.com/check/${ip}" target="_blank" class="text-blue-400 hover:underline mt-2 inline-block">View full report &rarr;</a>
+                        </div>`;
+                    this.renderCardContent('abuseipdb', html);
+
+                } catch (error) {
+                    this.renderCardError('abuseipdb', error.message);
+                }
+            },
+
+            // --- Renderer Helpers ---
+            renderWhois(data, format = 'html') {
+                if (!data) return '';
+                
+                const registrar = data.entities?.find(e => e.roles.includes('registrar'))?.publicIds?.[0]?.identifier || 'N/A';
+                const created = data.events?.find(e => e.eventAction === 'registration')?.eventDate || 'N/A';
+                const expires = data.events?.find(e => e.eventAction === 'expiration')?.eventDate || 'N/A';
+                
+                return `
+                    <hr class="border-gray-700 my-4">
+                    <h3 class="text-lg font-semibold text-gray-300 mb-2">WHOIS (RDAP)</h3>
+                    <div class="font-mono text-sm">
+                        <p><strong class="text-gray-400 w-24 inline-block">Registrar:</strong> ${registrar}</p>
+                        <p><strong class="text-gray-400 w-24 inline-block">Created:</strong> ${new Date(created).toLocaleDateString()}</p>
+                        <p><strong class="text-gray-400 w-24 inline-block">Expires:</strong> ${new Date(expires).toLocaleDateString()}</p>
+                    </div>`;
+            },
+            
+            // --- Network Graph ---
+            generateNetworkGraph() {
+                const { target, resolvedIp, subdomains, dns } = this.state.scanResults;
+                if (!target) {
+                    this.showGlobalMessage('Please run a scan before generating a graph.', 'error');
+                    return;
+                }
+
+                const nodes = [];
+                const edges = [];
+                let idCounter = 1;
+
+                // --- Node Styles ---
+                const styles = {
+                    target: { color: { background: '#2563eb', border: '#1d4ed8' }, font: { color: '#ffffff' }, shape: 'dot', size: 25 },
+                    ip: { color: { background: '#10b981', border: '#059669' }, font: { color: '#ffffff' }, shape: 'dot', size: 15 },
+                    subdomain: { color: { background: '#f59e0b', border: '#d97706' }, font: { color: '#ffffff' }, shape: 'dot', size: 10 },
+                    dns: { color: { background: '#6366f1', border: '#4f46e5' }, font: { color: '#ffffff' }, shape: 'dot', size: 10 },
+                };
+
+                // Add main target node
+                const targetId = idCounter++;
+                nodes.push({ id: targetId, label: target, ...styles.target, group: 'target' });
+
+                // Add resolved IP
+                let ipId;
+                if (resolvedIp) {
+                    ipId = idCounter++;
+                    nodes.push({ id: ipId, label: resolvedIp, ...styles.ip, group: 'ip' });
+                    edges.push({ from: targetId, to: ipId });
+                }
+
+                // Add subdomains
+                if (subdomains && subdomains.length > 0) {
+                    subdomains.forEach(sub => {
+                        const subId = idCounter++;
+                        nodes.push({ id: subId, label: sub, ...styles.subdomain, group: 'subdomain' });
+                        edges.push({ from: targetId, to: subId });
+                    });
+                }
+                
+                // Add DNS records
+                if (dns) {
+                    Object.keys(dns).forEach(type => {
+                        if (type === 'A' || type === 'AAAA') return; // Already handled by IP
+                        dns[type].forEach(record => {
+                            const recordId = idCounter++;
+                            nodes.push({ id: recordId, label: `${type}: ${record.data.substring(0, 30)}...`, ...styles.dns, group: 'dns', title: record.data });
+                            edges.push({ from: targetId, to: recordId });
+                        });
+                    });
+                }
+
+                // create a network
+                const container = document.getElementById('network-graph');
+                const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+                const options = {
+                    nodes: {
+                        borderWidth: 2,
+                        font: {
+                            size: 14,
+                            face: 'Inter',
+                        },
+                    },
+                    edges: {
+                        color: {
+                            color: '#6b7280', // gray-500
+                            highlight: '#9ca3af', // gray-400
+                        },
+                        width: 1,
+                        smooth: {
+                            type: 'continuous'
+                        }
+                    },
+                    physics: {
+                        solver: 'forceAtlas2Based',
+                        forceAtlas2Based: {
+                            gravitationalConstant: -50,
+                            centralGravity: 0.01,
+                            springLength: 100,
+                            springConstant: 0.08,
+                            avoidOverlap: 0.5
+                        },
+                        stabilization: {
+                            iterations: 150
+                        }
+                    },
+                    interaction: {
+                        hover: true,
+                        tooltipDelay: 200,
+                        navigationButtons: true,
+                        keyboard: true,
+                    },
+                    layout: {
+                        hierarchical: false
+                    },
+                    groups: {
+                        target: styles.target,
+                        ip: styles.ip,
+                        subdomain: styles.subdomain,
+                        dns: styles.dns,
+                    }
+                };
+                
+                if (this.state.network) {
+                    this.state.network.destroy();
+                }
+                this.state.network = new vis.Network(container, data, options);
+                this.showGlobalMessage('Network graph generated.', 'success');
+            },
+        };
+
+        // --- Liftoff ---
+        // Run the app's initialization function once the entire window (including scripts) is loaded
+        window.addEventListener('load', () => {
+            // Initialize Lucide icons now that all scripts are loaded
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            } else {
+                console.error('Lucide icon script failed to load.');
+            }
+            App.init();
+        });
+
+    </script>
+</body>
+</html>
