@@ -1,6 +1,7 @@
 # Cortex 👁️ Web Based OSINT Dashboard
 
-Cortex is a powerful, single-page web application designed for security analysts, penetration testers, and IT professionals. It aggregates data from multiple security APIs into a centralized, dark-mode dashboard for rapid reconnaissance and threat intelligence gathering.
+Cortex is a powerful, single-page web application designed for security analysts, penetration testers, and IT professionals. 
+It aggregates data from multiple security APIs into a centralized, dark-mode dashboard for rapid reconnaissance and threat intelligence gathering.
 
 ## ✨ Features
 
@@ -35,8 +36,8 @@ Cortex is a powerful, single-page web application designed for security analysts
 
 1. **Clone the repository**
    ```bash
-   git clone [https://github.com/yourusername/cortex-dashboard.git](https://github.com/yourusername/cortex-dashboard.git)
-   cd cortex-dashboard
+   git clone https://github.com/ahmemoha/network-intel-dashboard.git
+   cd network-intel-dashboard
 2. **Run Locally** Simply double-click index.html to open it in your browser. No local server (Node/Python) is required.
 
 3. **Configure:**
@@ -72,7 +73,7 @@ Since Cortex is a client-side application, you can host it for free on GitHub Pa
 
 6. Click Save
 
-Your tool will be live at `https://yourusername.github.io/cortex-dashboard/`
+Your tool will be live at `https://ahmemoha.github.io/network-intel-dashboard/`
 
 ### ⚠️ Security & Privacy Warning
 - **Client-Side Exposure:** This tool is designed for local use or private authorized use.
