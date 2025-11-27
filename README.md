@@ -40,7 +40,32 @@ It aggregates data from multiple security APIs into a centralized, dark-mode das
    ```bash
    git clone https://github.com/ahmemoha/network-intel-dashboard.git
    cd network-intel-dashboard
-2. **Run Locally** Simply double-click index.html to open it in your browser. No local server (Node/Python) is required.
+2. **Run Locally** Simply double-click index.html to open it in your browser. No local server (Node/Python) is required. Or have the below option
+
+### Prerequisites
+- `make` command available on your system
+- Python 3.x installed
+- Modern web browser
+
+ **Serve the application** (Recommended)
+   ```bash
+   make serve
+   ```
+**Access the dashboard**
+Open your browser to `http://localhost:8000/network-intel-dashboard.html`
+
+**Stop the Server:** When you are done, return to the terminal window and press `Ctrl+C`
+
+### Alternative Methods
+**Manual Run (No Makefile):**
+
+```bash
+python3 -m http.server 8000
+```
+**Direct File Access:**
+```bash
+make open
+```
 
 3. **Configure:**
 - Open the **Settings** tab within the dashboard
