@@ -46,6 +46,8 @@ It aggregates data from multiple security APIs into a centralized, dark-mode das
 - Enter your API keys
 
 - Click **Save Keys**
+  
+<img width="1919" height="1013" alt="Screenshot 2025-11-26 185459" src="https://github.com/user-attachments/assets/0f50d8e6-e13e-41ec-bda6-68178bee4a93" />
 
 ## 📂  Project Structure
 ```bash
@@ -74,6 +76,8 @@ Since the dashboard is a client-side application, you can host it for free on Gi
 6. Click Save
 
 Your tool will be live at `https://ahmemoha.github.io/network-intel-dashboard/`
+
+<img width="1911" height="1027" alt="Screenshot 2025-11-26 185403" src="https://github.com/user-attachments/assets/55c857d6-58a1-4c0a-b052-979e15d31057" />
 
 ### ⚠️ Security & Privacy Warning
 - **Client-Side Exposure:** This tool is designed for local use or private authorized use.
