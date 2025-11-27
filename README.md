@@ -73,7 +73,7 @@ make open
 
 After Option 1 or 2:
 
-3. **Configure:**
+**Configure:**
 - Open the **Settings** tab within the dashboard
 
 - Enter your API keys
