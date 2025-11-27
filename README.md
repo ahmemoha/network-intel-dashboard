@@ -3,6 +3,8 @@
 This dashboard is a powerful, single-page web application designed for security analysts, penetration testers, and IT professionals. 
 It aggregates data from multiple security APIs into a centralized, dark-mode dashboard for rapid reconnaissance and threat intelligence gathering.
 
+<img width="1911" height="1027" alt="dd" src="https://github.com/user-attachments/assets/e1bdd62a-6601-4719-90b7-d0c71d1e8e84" />
+
 ## ✨ Features
 
 ### 🕵️‍♂️ Target Reconnaissance
@@ -47,7 +49,7 @@ It aggregates data from multiple security APIs into a centralized, dark-mode das
 
 - Click **Save Keys**
   
-<img width="1919" height="1013" alt="Screenshot 2025-11-26 185459" src="https://github.com/user-attachments/assets/0f50d8e6-e13e-41ec-bda6-68178bee4a93" />
+<img width="1918" height="1012" alt="ga" src="https://github.com/user-attachments/assets/f7ab89fd-fad7-4b6c-b364-997a7c03f75f" />
 
 ## 📂  Project Structure
 ```bash
