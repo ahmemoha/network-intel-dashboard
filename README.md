@@ -72,6 +72,7 @@ make open
 ```
 
 After Option 1 or 2:
+
 3. **Configure:**
 - Open the **Settings** tab within the dashboard
 
