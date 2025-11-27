@@ -57,9 +57,8 @@ network-intel-dashboard/
 ├── .gitignore       # Ignored files (system logs, keys)
 ├── LICENSE          # MIT License
 ├── README.md        # Documentation
-├── index.html       # Main Application
-└── screenshots/     # Images for the README
-    └── preview.png
+└── index.html       # Main Application
+
 ```
 
 ### 🌐  Deployment (GitHub Pages)
@@ -78,8 +77,6 @@ Since the dashboard is a client-side application, you can host it for free on Gi
 6. Click Save
 
 Your tool will be live at `https://ahmemoha.github.io/network-intel-dashboard/`
-
-<img width="1911" height="1027" alt="Screenshot 2025-11-26 185403" src="https://github.com/user-attachments/assets/55c857d6-58a1-4c0a-b052-979e15d31057" />
 
 ### ⚠️ Security & Privacy Warning
 - **Client-Side Exposure:** This tool is designed for local use or private authorized use.
