@@ -49,7 +49,7 @@ It aggregates data from multiple security APIs into a centralized, dark-mode das
 
 ## 📂  Project Structure
 ```bash
-cortex-dashboard/
+network-intel-dashboard/
 ├── .gitignore       # Ignored files (system logs, keys)
 ├── LICENSE          # MIT License
 ├── README.md        # Documentation
@@ -59,7 +59,7 @@ cortex-dashboard/
 ```
 
 ### 🌐  Deployment (GitHub Pages)
-Since Cortex is a client-side application, you can host it for free on GitHub Pages:
+Since the dashboard is a client-side application, you can host it for free on GitHub Pages:
 
 1. Rename the main file to `index.html`
 
@@ -82,7 +82,7 @@ Your tool will be live at `https://ahmemoha.github.io/network-intel-dashboard/`
 
 - **Public Hosting:** If you host this on a public URL, ensure you trust the users. While keys are stored in their browser (`localStorage`), a malicious user could potentially inspect the code.
 
-- **Data Privacy:** Your scan history stays in your browser's memory and is not sent to any backend server managed by Cortex.
+- **Data Privacy:** Your scan history stays in your browser's memory and is not sent to any backend server managed by Intel Dashboard.
 
 ### 📜 Disclaimer
 **Authorized Use Only:** This application is a reconnaissance tool designed for security professionals and researchers. The user is solely responsible for ensuring they have authorization to scan the targets they input. The creator assumes no liability for misuse or unauthorized scanning activities.
