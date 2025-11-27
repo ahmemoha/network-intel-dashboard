@@ -81,6 +81,7 @@ make open
 network-intel-dashboard/
 ├── .gitignore       # Ignored files (system logs, keys)
 ├── LICENSE          # MIT License
+├── Makefile         
 ├── README.md        # Documentation
 └── index.html       # Main Application
 
