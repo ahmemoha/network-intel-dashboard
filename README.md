@@ -27,34 +27,38 @@ It aggregates data from multiple security APIs into a centralized, dark-mode das
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Installation & Run (2 options)
+## Prerequisites (Option 1)
 - A modern Web Browser (Chrome, Firefox, Edge, Brave)
 - **API Keys** (Free tiers available):
   - VirusTotal API
   - Shodan API
   - AbuseIPDB API
+    
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/ahmemoha/network-intel-dashboard.git
+   cd network-intel-dashboard
+2. **Run Locally** Simply double-click index.html to open it in your browser. No local server (Node/Python) is required. 
 
-### Installation & Run
+## Prerequisites (Option 2)
+- `make` command available on your system
+- Python 3.x installed
+- Modern web browser
 
 1. **Clone the repository**
    ```bash
    git clone https://github.com/ahmemoha/network-intel-dashboard.git
    cd network-intel-dashboard
-2. **Run Locally** Simply double-click index.html to open it in your browser. No local server (Node/Python) is required. Or have the below option
-
-### Prerequisites
-- `make` command available on your system
-- Python 3.x installed
-- Modern web browser
-
- **Serve the application** (Recommended)
+   
+2. **Serve the application** (Recommended)
    ```bash
    make serve
    ```
-**Access the dashboard**
+4. **Access the dashboard**
 Open your browser to `http://localhost:8000/network-intel-dashboard.html`
 
-**Stop the Server:** When you are done, return to the terminal window and press `Ctrl+C`
+5. **Stop the Server:** When you are done, return to the terminal window and press `Ctrl+C`
 
 ### Alternative Methods
 **Manual Run (No Makefile):**
